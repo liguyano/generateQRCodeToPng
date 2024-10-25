@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "qrcodegen.h"
-void writePng(const std::vector<std::vector<int>>& matrix, const char *filename);
+void writePng(const std::vector<std::vector<int>>& matrix, const char *filename,int sca);
 static void printQr(const uint8_t qrcode[]) {
     int size = qrcodegen_getSize(qrcode);
     int border = 4;
@@ -25,41 +25,41 @@ static void printQr(const uint8_t qrcode[]) {
 
 
         }
-        for (auto i:line) {
-            if (i==0){
-                printf_s(" ");
-            }else{
-                printf_s("%d",i);
-            }
-
-        }
        // printf_s("line size :%d \n",line.size());
-        printf_s("\n");
         //fputs("\n", stdout);
         matrix.push_back(line);
 
 
     }
    // fputs("\n", stdout);
-    writePng(matrix,"b.png");   printf_s("size :%d \n",matrix.size());
+    writePng(matrix,"b.png",3);
 }
-
-void writePng(const std::vector<std::vector<int>>& matrix, const char *filename) {
+void writePng(const std::vector<std::vector<int>>& matrix, const char *filename,int sca) {
     int size = matrix.size();
-    std::vector<unsigned char> image(size * size * 3, 255);  // 初始化全白背景
+    int scale = sca*sca;  // 每个点放大为4个像素
+    int scaledSize = size * scale;
+
+    // 创建放大后的图像数据
+    std::vector<unsigned char> image(scaledSize * scaledSize * 3, 255);  // 初始化全白背景
 
     for (int y = 0; y < size; y++) {
         for (int x = 0; x < size; x++) {
             if (matrix[y][x] == 1) {  // 如果是黑色像素
-                image[(y * size + x) * 3] = 0;  // R
-                image[(y * size + x) * 3 + 1] = 0;  // G
-                image[(y * size + x) * 3 + 2] = 0;  // B
+                for (int sy = 0; sy < scale; sy++) {
+                    for (int sx = 0; sx < scale; sx++) {
+                        int scaledY = y * scale + sy;
+                        int scaledX = x * scale + sx;
+                        image[(scaledY * scaledSize + scaledX) * 3] = 0;  // R
+                        image[(scaledY * scaledSize + scaledX) * 3 + 1] = 0;  // G
+                        image[(scaledY * scaledSize + scaledX) * 3 + 2] = 0;  // B
+                    }
+                }
             }
         }
     }
 
     // 写入PNG文件
-    if (!stbi_write_png(filename, size, size, 3, image.data(), 0)) {
+    if (!stbi_write_png(filename, scaledSize, scaledSize, 3, image.data(), 0)) {
         std::cerr << "Failed to write PNG file." << std::endl;
     } else {
         std::cout << "PNG file written successfully: " << filename << std::endl;
